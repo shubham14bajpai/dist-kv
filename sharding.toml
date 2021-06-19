@@ -1,0 +1,18 @@
+[[shards]]
+name = "north"
+idx = 0
+address = "localhost:8080"
+
+[[shards]]
+name = "east"
+idx = 1
+address = "localhost:8081"
+
+[[shards]]
+name = "west"
+idx = 2
+address = "localhost:8082"
+
+# [[shard]]
+# name = "south"
+# idx = 3
