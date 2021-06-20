@@ -56,3 +56,33 @@ func (d *Database) GetKey(key string) (value []byte, err error) {
 	})
 	return value, err
 }
+
+func (d *Database) DeleteExtraKeys(isExtra func(string) bool) error {
+	var keys []string
+
+	err := d.db.View(func(t *bolt.Tx) error {
+		b := t.Bucket(defaultBucket)
+		return b.ForEach(func(k, v []byte) error {
+			ks := string(k)
+			if isExtra(ks) {
+				keys = append(keys, ks)
+			}
+			return nil
+		})
+
+	})
+	if err != nil {
+		return err
+	}
+
+	return d.db.Update(func(t *bolt.Tx) error {
+		b := t.Bucket(defaultBucket)
+		for _, k := range keys {
+			if err := b.Delete([]byte(k)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+}

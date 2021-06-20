@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/BurntSushi/toml"
 	"github.com/shubham14bajpai/dist-kv/config"
 	"github.com/shubham14bajpai/dist-kv/db"
 	"github.com/shubham14bajpai/dist-kv/web"
@@ -33,30 +32,19 @@ func parseFlags() {
 func main() {
 
 	parseFlags()
-	var c config.Config
-	_, err := toml.DecodeFile(*configFile, &c)
+
+	c, err := config.ParseFile(*configFile)
 	if err != nil {
 		log.Fatalf("failed to parse config file: %v", err)
 	}
 
-	var shardCount int
-	var shardIdx int = -1
-	var addrs = make(map[int]string)
-	for _, s := range c.Shards {
-		addrs[s.Idx] = s.Address
-		if s.Idx+1 > shardCount {
-			shardCount = s.Idx + 1
-		}
-		if s.Name == *shard {
-			shardIdx = s.Idx
-		}
+	shards, err := config.ParseShards(c.Shards, *shard)
+	if err != nil {
+		log.Fatalf("failed to parse shards: %v", err)
 	}
 
-	if shardIdx < 0 {
-		log.Fatalf("shard %s not found", *shard)
-	}
-
-	log.Printf("Shard count: %d and shard index: %d", shardCount, shardIdx)
+	log.Printf("Shard count: %d and shard index: %d",
+		shards.Count, shards.CurrIdx)
 
 	db, close, err := db.NewDatabase(*dbLocation)
 	if err != nil {
@@ -64,10 +52,11 @@ func main() {
 	}
 	defer close()
 
-	srv := web.NewServer(db, shardCount, shardIdx, addrs)
+	srv := web.NewServer(db, shards)
 
 	http.HandleFunc("/get", srv.GetHandler)
 	http.HandleFunc("/set", srv.SetHandler)
+	http.HandleFunc("/purge", srv.DeleteExtraKeysHandler)
 
 	log.Fatal(http.ListenAndServe(*httpAddr, nil))
 

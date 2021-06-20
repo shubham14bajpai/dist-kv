@@ -13,6 +13,7 @@ name = "west"
 idx = 2
 address = "localhost:8082"
 
-# [[shard]]
-# name = "south"
-# idx = 3
+[[shards]]
+name = "south"
+idx = 3
+address = "localhost:8083"
